@@ -5,7 +5,10 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"sync"
 )
+
+var mu sync.Mutex
 
 type Appointment struct {
 	ID      int    `json:"id"`
@@ -20,12 +23,17 @@ var appointments = []Appointment{}
 var nextID = 1
 
 func listAppointments(w http.ResponseWriter, r *http.Request) {
+	mu.Lock()
+	defer mu.Unlock()
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(appointments)
 
 }
 
 func createAppointment(w http.ResponseWriter, r *http.Request) {
+
+	mu.Lock()
+	defer mu.Unlock()
 
 	w.Header().Set("Content-Type", "application/json")
 
@@ -49,6 +57,9 @@ func createAppointment(w http.ResponseWriter, r *http.Request) {
 }
 
 func getAppointment(w http.ResponseWriter, r *http.Request) {
+
+	mu.Lock()
+	defer mu.Unlock()
 	w.Header().Set("Content-Type", "application/json")
 
 	idText := r.PathValue("id")
@@ -63,8 +74,6 @@ func getAppointment(w http.ResponseWriter, r *http.Request) {
 	for _, a := range appointments {
 		if a.ID == id {
 
-			w.WriteHeader(http.StatusOK)
-
 			json.NewEncoder(w).Encode(a)
 			return
 
@@ -77,11 +86,14 @@ func getAppointment(w http.ResponseWriter, r *http.Request) {
 
 func deleteAppointment(w http.ResponseWriter, r *http.Request) {
 
+	mu.Lock()
+	defer mu.Unlock()
+
 	idText := r.PathValue("id")
 	id, err := strconv.Atoi(idText)
 
 	if err != nil {
-		http.Error(w, "id bulunamadı", http.StatusBadRequest)
+		http.Error(w, "geçersiz id", http.StatusBadRequest)
 		return
 
 	}
