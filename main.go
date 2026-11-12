@@ -1,11 +1,19 @@
 package main
 
 import (
+	"github.com/joho/godotenv"
 	"log"
 	"net/http"
 )
 
 func main() {
+
+	if err := godotenv.Load(); err != nil { // ← .env'i oku, içindekileri ortam değişkeni yap
+		log.Println(".env okunamadi, ortam degiskenleri kullanilacak")
+	}
+
+	connectDB()
+	defer db.Close()
 
 	http.HandleFunc("DELETE /appointments/{id}", deleteAppointment)
 
