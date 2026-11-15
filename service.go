@@ -9,7 +9,15 @@ import (
 
 var ErrGecersizGirdi = errors.New("geçersiz girdi")
 
-func createAppointmentService(ctx context.Context, a Appointment) (Appointment, error) {
+type AppointmentService struct {
+	repo AppointmentRepository //Service’te interface kullandık çünkü repository’yi testlerde değiştirmek istiyoruz
+}
+
+func NewAppointmentService(repo AppointmentRepository) *AppointmentService {
+	return &AppointmentService{repo: repo}
+}
+
+func (s *AppointmentService) Create(ctx context.Context, a Appointment) (Appointment, error) {
 
 	if strings.TrimSpace(a.Patient) == "" {
 		return Appointment{}, fmt.Errorf("%w: hasta adi bos olamaz", ErrGecersizGirdi)
@@ -30,18 +38,18 @@ func createAppointmentService(ctx context.Context, a Appointment) (Appointment, 
 		a.Status = "beklemede"
 	}
 
-	return createAppointmentInDB(ctx, a)
+	return s.repo.Create(ctx, a)
 
 }
 
-func listAppointmentsService(ctx context.Context) ([]Appointment, error) {
-	return listAppointmentsFromDB(ctx)
+func (s *AppointmentService) List(ctx context.Context) ([]Appointment, error) {
+	return s.repo.List(ctx)
 }
 
-func getAppointmentService(ctx context.Context, id int) (Appointment, error) {
-	return getAppointmentFromDB(ctx, id)
+func (s *AppointmentService) GetByID(ctx context.Context, id int) (Appointment, error) {
+	return s.repo.GetByID(ctx, id)
 }
 
-func deleteAppointmentService(ctx context.Context, id int) (int64, error) {
-	return deleteAppointmentFromDB(ctx, id)
+func (s *AppointmentService) Delete(ctx context.Context, id int) (int64, error) {
+	return s.repo.Delete(ctx, id)
 }

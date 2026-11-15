@@ -2,11 +2,31 @@ package main
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func listAppointmentsFromDB(ctx context.Context) ([]Appointment, error) {
+type AppointmentRepository interface {
+	List(ctx context.Context) ([]Appointment, error)
+	GetByID(ctx context.Context, id int) (Appointment, error)
+	Create(ctx context.Context, a Appointment) (Appointment, error)
+	Delete(ctx context.Context, id int) (int64, error)
+}
 
-	rows, err := db.Query(ctx, //rows db satırları üzerinde hazır func ları olan bir tutamak
+type PostgresRepository struct {
+	db *pgxpool.Pool //veritabanı havuzu
+
+}
+
+func NewPostgresRepository(db *pgxpool.Pool) *PostgresRepository {
+
+	return &PostgresRepository{db: db}
+
+}
+
+func (r *PostgresRepository) List(ctx context.Context) ([]Appointment, error) {
+
+	rows, err := r.db.Query(ctx, //rows db satırları üzerinde hazır func ları olan bir tutamak
 
 		`SELECT id, patient, phone, appointment_date::text, status, clinic_id
 		 FROM appointments
@@ -40,11 +60,11 @@ func listAppointmentsFromDB(ctx context.Context) ([]Appointment, error) {
 
 }
 
-func getAppointmentFromDB(ctx context.Context, id int) (Appointment, error) { //QueryRow tek bir satır okur.
+func (r *PostgresRepository) GetByID(ctx context.Context, id int) (Appointment, error) { //QueryRow tek bir satır okur.
 
 	var a Appointment
 
-	err := db.QueryRow(ctx, `SELECT id, patient, phone, appointment_date::text, status, clinic_id
+	err := r.db.QueryRow(ctx, `SELECT id, patient, phone, appointment_date::text, status, clinic_id
 		 FROM appointments
 		 WHERE id = $1`, id).Scan(&a.ID, &a.Patient, &a.Phone, &a.Date, &a.Status, &a.ClinicID)
 
@@ -56,9 +76,9 @@ func getAppointmentFromDB(ctx context.Context, id int) (Appointment, error) { //
 
 }
 
-func createAppointmentInDB(ctx context.Context, a Appointment) (Appointment, error) {
+func (r *PostgresRepository) Create(ctx context.Context, a Appointment) (Appointment, error) {
 
-	err := db.QueryRow(ctx, `
+	err := r.db.QueryRow(ctx, `
 	INSERT INTO appointments (patient, phone, appointment_date, status, clinic_id)
 	VALUES ($1, $2, $3::date, $4, $5)
 	RETURNING id`,
@@ -72,9 +92,9 @@ func createAppointmentInDB(ctx context.Context, a Appointment) (Appointment, err
 
 }
 
-func deleteAppointmentFromDB(ctx context.Context, id int) (int64, error) {
+func (r *PostgresRepository) Delete(ctx context.Context, id int) (int64, error) {
 
-	tag, err := db.Exec(ctx, `DELETE FROM appointments WHERE id = $1`, id)
+	tag, err := r.db.Exec(ctx, `DELETE FROM appointments WHERE id = $1`, id)
 
 	if err != nil {
 		return 0, err

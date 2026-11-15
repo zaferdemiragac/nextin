@@ -6,6 +6,9 @@ import (
 	"net/http"
 )
 
+type AppointmentRouter struct {
+}
+
 func main() {
 
 	if err := godotenv.Load(); err != nil { // ← .env'i oku, içindekileri ortam değişkeni yap
@@ -15,12 +18,18 @@ func main() {
 	connectDB()
 	defer db.Close()
 
-	http.HandleFunc("DELETE /appointments/{id}", deleteAppointment)
+	repo := NewPostgresRepository(db)
 
-	http.HandleFunc("GET /appointments", listAppointments)
-	http.HandleFunc("POST /appointments", createAppointment)
+	service := NewAppointmentService(repo)
 
-	http.HandleFunc("GET /appointments/{id}", getAppointment)
+	handler := NewAppointmentHandler(service)
+
+	http.HandleFunc("DELETE /appointments/{id}", handler.Delete)
+
+	http.HandleFunc("GET /appointments", handler.List)
+	http.HandleFunc("POST /appointments", handler.Create)
+
+	http.HandleFunc("GET /appointments/{id}", handler.GetByID)
 
 	http.HandleFunc("GET /health", healthHandler)
 	log.Println("sunucu :8080 portunda dinliyor")

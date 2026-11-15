@@ -10,9 +10,19 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-func listAppointments(w http.ResponseWriter, r *http.Request) {
+type AppointmentHandler struct {
+	service *AppointmentService
+}
 
-	list, err := listAppointmentsService(r.Context())
+func NewAppointmentHandler(service *AppointmentService) *AppointmentHandler {
+
+	return &AppointmentHandler{service: service}
+
+}
+
+func (h *AppointmentHandler) List(w http.ResponseWriter, r *http.Request) {
+
+	list, err := h.service.List(r.Context())
 
 	if err != nil {
 		log.Println("listeleme hatası")
@@ -25,7 +35,7 @@ func listAppointments(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func getAppointment(w http.ResponseWriter, r *http.Request) {
+func (h *AppointmentHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 
 	id, err := strconv.Atoi(r.PathValue("id"))
 
@@ -35,7 +45,7 @@ func getAppointment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	a, err := getAppointmentService(r.Context(), id)
+	a, err := h.service.GetByID(r.Context(), id)
 
 	if errors.Is(err, pgx.ErrNoRows) {
 
@@ -56,7 +66,7 @@ func getAppointment(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func createAppointment(w http.ResponseWriter, r *http.Request) {
+func (h *AppointmentHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	var a Appointment
 
@@ -66,7 +76,7 @@ func createAppointment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	created, err := createAppointmentService(r.Context(), a)
+	created, err := h.service.Create(r.Context(), a)
 
 	if errors.Is(err, ErrGecersizGirdi) { // ← sarmalın içine bakar
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -84,7 +94,7 @@ func createAppointment(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func deleteAppointment(w http.ResponseWriter, r *http.Request) {
+func (h *AppointmentHandler) Delete(w http.ResponseWriter, r *http.Request) {
 
 	id, err := strconv.Atoi(r.PathValue("id"))
 
@@ -94,7 +104,7 @@ func deleteAppointment(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-	rowsAffected, err := deleteAppointmentService(r.Context(), id)
+	rowsAffected, err := h.service.Delete(r.Context(), id)
 
 	if err != nil {
 		http.Error(w, "sunucu hatasi", http.StatusInternalServerError)
