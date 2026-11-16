@@ -20,6 +20,8 @@ func main() {
 
 	repo := NewPostgresRepository(db)
 
+	// repo  := NewFakeRepository()
+
 	service := NewAppointmentService(repo)
 
 	handler := NewAppointmentHandler(service)
